@@ -18,8 +18,9 @@ function getRecommendList(nowDate, callback) {
     getAPI(queryUrl, Common.getToken()),
     getPlanningAPI(),
     getMyDataAPI('interests.json'),
-    getMyDataAPI('skills.json')
-  ).done(function(planObj, planningObj, myInterests, mySkills) {
+    getMyDataAPI('skills.json'),
+    getPCalendarSchedule(startMoment.format("YYYY-MM-DD"))
+  ).done(function(planObj, planningObj, myInterests, mySkills, schedule) {
     // TODO Handle Error Response
     let planList = planObj[0].d.results;
     let planningList = planningObj[0].d.results;
@@ -61,82 +62,77 @@ function getRecommendList(nowDate, callback) {
       "allday": [],
       "oneday": []
     };
-    getPCalendarSchedule(startMoment.format("YYYY-MM-DD")).done(function(schedule) {
-      cSchedule = schedule;
-    }).fail(function(e) {
-      console.log(e);
-    }).always(function() {
-      // calendar:allday
-      if (cSchedule.allday.length > 0) {
-        $("#recommended-schedule").addClass("mask-event");
-        recommendSchedule.push({
-          "type": "allday",
-          "title": cSchedule.allday,
-        })
-      } else {
-        $("#recommended-schedule").removeClass("mask-event");
-      }
-
-      // home
+    cSchedule = schedule[0];
+    // calendar:allday
+    if (cSchedule.allday.length > 0) {
+      $("#recommended-schedule").addClass("mask-event");
       recommendSchedule.push({
-          "type": "home",
-          "planStatus": "confirm",
-          "title": "自宅",
-          "startDate": startMoment.toISOString(),
-          "endDate": moment(startMoment).add(30, "minutes").toISOString(),
-          "longitude": 9999, // Interim
-          "latitude": 9999 // Interim
-      });
+        "type": "allday",
+        "title": cSchedule.allday,
+      })
+    } else {
+      $("#recommended-schedule").removeClass("mask-event");
+    }
 
-      // calendar:oneday
-      recommendSchedule = setRecommendSchedule(recommendSchedule, cSchedule.oneday);
+    // home
+    recommendSchedule.push({
+        "type": "home",
+        "planStatus": "confirm",
+        "title": "自宅",
+        "startDate": startMoment.toISOString(),
+        "endDate": moment(startMoment).add(30, "minutes").toISOString(),
+        "longitude": 9999, // Interim
+        "latitude": 9999 // Interim
+    });
 
-      // Review / Participation
-      recommendSchedule = setRecommendSchedule(recommendSchedule, todayPlanningList);
-      
-      // Recommended plan list using my skill keywords
-      const mySkillsRecommendedList = createRecommendedList(planList, mySkills[0].keywords, MAX_PLANLIST_SIZE);
-      recommendSchedule = setRecommendSchedule(recommendSchedule, mySkillsRecommendedList);
+    // calendar:oneday
+    recommendSchedule = setRecommendSchedule(recommendSchedule, cSchedule.oneday);
 
-      // Recommended plan list using my interest keywords
-      const myInterestsRecommendedList = createRecommendedList(planList, myInterests[0].keywords, MAX_PLANLIST_SIZE);
-      recommendSchedule = setRecommendSchedule(recommendSchedule, myInterestsRecommendedList);
+    // Review / Participation
+    recommendSchedule = setRecommendSchedule(recommendSchedule, todayPlanningList);
+    
+    // Recommended plan list using my skill keywords
+    const mySkillsRecommendedList = createRecommendedList(planList, mySkills[0].keywords, MAX_PLANLIST_SIZE);
+    recommendSchedule = setRecommendSchedule(recommendSchedule, mySkillsRecommendedList);
 
-      // Other
-      const sampledPlanList = _.sample(filterByContent(planList), MAX_PLANLIST_SIZE);
-      recommendSchedule = setRecommendSchedule(recommendSchedule, sampledPlanList);
-      
-      let lastHomeEndMoment = moment(recommendSchedule[recommendSchedule.length - 1].endDate);
-      let homePlan = {
-          "type": "home",
-          "planStatus": "confirm",
-          "title": "自宅",
-          "startDate": lastHomeEndMoment.toISOString(),
-          "longitude": 9999, // Interim
-          "latitude": 9999 // Interim
-      }
-      let sectionEvent = getSection();
-      let resultIndex = checkLonLat(recommendSchedule, homePlan, recommendSchedule.length - 1);
-      if (resultIndex != null) {
-        homePlan.startDate = lastHomeEndMoment.add(
-            getTravelTime(
-              recommendSchedule[resultIndex].longitude
-            , recommendSchedule[resultIndex].latitude
-            , homePlan.longitude
-            , homePlan.latitude
-            )
-          , "minutes"
-        ).toISOString();
-        sectionEvent = getMove(homePlan, recommendSchedule[resultIndex]);
-      }
-      recommendSchedule.push(sectionEvent);
-      recommendSchedule.push(homePlan);
-  
-      if ((typeof callback !== "undefined") && $.isFunction(callback)) {
-        callback(recommendSchedule);
-      }
-    })
-  }).fail(function(e) {
+    // Recommended plan list using my interest keywords
+    const myInterestsRecommendedList = createRecommendedList(planList, myInterests[0].keywords, MAX_PLANLIST_SIZE);
+    recommendSchedule = setRecommendSchedule(recommendSchedule, myInterestsRecommendedList);
+
+    // Other
+    const sampledPlanList = _.sample(filterByContent(planList), MAX_PLANLIST_SIZE);
+    recommendSchedule = setRecommendSchedule(recommendSchedule, sampledPlanList);
+    
+    let lastHomeEndMoment = moment(recommendSchedule[recommendSchedule.length - 1].endDate);
+    let homePlan = {
+        "type": "home",
+        "planStatus": "confirm",
+        "title": "自宅",
+        "startDate": lastHomeEndMoment.toISOString(),
+        "longitude": 9999, // Interim
+        "latitude": 9999 // Interim
+    }
+    let sectionEvent = getSection();
+    let resultIndex = checkLonLat(recommendSchedule, homePlan, recommendSchedule.length - 1);
+    if (resultIndex != null) {
+      homePlan.startDate = lastHomeEndMoment.add(
+          getTravelTime(
+            recommendSchedule[resultIndex].longitude
+          , recommendSchedule[resultIndex].latitude
+          , homePlan.longitude
+          , homePlan.latitude
+          )
+        , "minutes"
+      ).toISOString();
+      sectionEvent = getMove(homePlan, recommendSchedule[resultIndex]);
+    }
+    recommendSchedule.push(sectionEvent);
+    recommendSchedule.push(homePlan);
+    if ((typeof callback !== "undefined") && $.isFunction(callback)) {
+      callback(recommendSchedule);
+    }
+  })
+  .fail(function(e) {
     console.log(e);
   })
 }
