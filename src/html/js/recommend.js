@@ -24,18 +24,7 @@ function getRecommendList(nowDate, callback) {
     // TODO Handle Error Response
     let planList = planObj[0].d.results;
     let planningList = planningObj[0].d.results;
-    let myKeywords = mySkills[0].keywords;
-    let tempKeywords = myInterests[0].keywords;
-    if (!_.isUndefined(tempKeywords)) {
-      if (!_.isUndefined(myKeywords)) {
-        // skill merge
-        myKeywords = $.merge(myKeywords, tempKeywords);
-        // delete Duplicate
-        myKeywords = myKeywords.filter(function(x,i,self){return self.indexOf(x)===i})
-      } else {
-        myKeywords = tempKeywords;
-      }
-    }
+    let myKeywords = _.union(mySkills[0].keywords, myInterests[0].keywords);
     if (!_.isUndefined(myKeywords)) {
       sessionStorage.keywords = JSON.stringify(myKeywords);
     }
@@ -90,7 +79,7 @@ function getRecommendList(nowDate, callback) {
 
     // Review / Participation
     recommendSchedule = setRecommendSchedule(recommendSchedule, todayPlanningList);
-    
+
     // Recommended plan list using my skill keywords
     const mySkillsRecommendedList = createRecommendedList(planList, mySkills[0].keywords, MAX_PLANLIST_SIZE);
     recommendSchedule = setRecommendSchedule(recommendSchedule, mySkillsRecommendedList);
