@@ -94,9 +94,13 @@ function getRecommendList(nowDate, callback) {
       // Review / Participation
       recommendSchedule = setRecommendSchedule(recommendSchedule, todayPlanningList);
       
-      // Recommended plan list using my keywords
-      const recommendedPlanList = createRecommendedList(planList, myKeywords, MAX_PLANLIST_SIZE);
-      recommendSchedule = setRecommendSchedule(recommendSchedule, recommendedPlanList);
+      // Recommended plan list using my skill keywords
+      const mySkillsRecommendedList = createRecommendedList(planList, mySkills[0].keywords, MAX_PLANLIST_SIZE);
+      recommendSchedule = setRecommendSchedule(recommendSchedule, mySkillsRecommendedList);
+
+      // Recommended plan list using my interest keywords
+      const myInterestsRecommendedList = createRecommendedList(planList, myInterests[0].keywords, MAX_PLANLIST_SIZE);
+      recommendSchedule = setRecommendSchedule(recommendSchedule, myInterestsRecommendedList);
 
       // Other
       const sampledPlanList = _.sample(filterByContent(planList), MAX_PLANLIST_SIZE);
