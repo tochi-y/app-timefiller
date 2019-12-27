@@ -75,8 +75,11 @@ const createOData = async (token, body) => {
       const body = await createOData(authRes.access_token, converted);
     }); 
   } catch (err) {
-    // console.error(err);
-    console.error(err.statusCode);
-    console.error(err.error);
+    if (err.statusCode && err.error) {
+      console.error(err.statusCode);
+      console.error(err.error);
+    } else {
+      console.error(err);
+    }
   }
 })();
